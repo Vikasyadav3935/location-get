@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# location-get
 
-## Getting Started
+A minimal Next.js app with an open (unauthenticated) API that accepts a location
+and displays it on the UI.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Base path: `/api/location`. No auth. CORS is open (`Access-Control-Allow-Origin: *`),
+so it can be called from any origin.
 
-## Learn More
+### `POST /api/location`
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+curl -X POST http://localhost:3000/api/location \
+  -H "Content-Type: application/json" \
+  -d '{"location": "Bengaluru"}'
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Response | Meaning |
+| --- | --- |
+| `201` `{ ok: true, entry: { id, location, receivedAt } }` | Accepted |
+| `400` `{ error }` | Body isn't valid JSON, or `location` is missing/empty/not a string |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### `GET /api/location`
 
-## Deploy on Vercel
+Returns `{ entries: [...] }`, newest first. The UI polls this every 2 seconds so
+values POSTed from curl or Postman show up on screen.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### `DELETE /api/location`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Clears the list.
+
+### `OPTIONS /api/location`
+
+CORS preflight — browsers send this automatically before a cross-origin POST
+with a JSON body.
+
+## Structure
+
+| File | Role |
+| --- | --- |
+| `app/api/location/route.ts` | The API route handler |
+| `app/lib/store.ts` | In-memory store, newest first, capped at 50 |
+| `app/page.tsx` | Server component — renders the current list at request time |
+| `app/location-board.tsx` | Client UI — form, list, polling |
+
+## Caveat
+
+The store is in memory, so it resets whenever the server restarts, and it is
+per-process — on a multi-instance deployment a POST and a GET can hit different
+instances and disagree. Swap it for Redis or a database before relying on it.
