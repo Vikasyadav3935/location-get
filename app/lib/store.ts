@@ -1,6 +1,7 @@
 export type LocationEntry = {
   id: string;
-  location: string;
+  latitude: number;
+  longitude: number;
   receivedAt: string;
 };
 
@@ -14,10 +15,11 @@ const entries: LocationEntry[] = (globalForStore.locationEntries ??= []);
 
 const MAX_ENTRIES = 50;
 
-export function addLocation(location: string): LocationEntry {
+export function addLocation(latitude: number, longitude: number): LocationEntry {
   const entry: LocationEntry = {
     id: crypto.randomUUID(),
-    location,
+    latitude,
+    longitude,
     receivedAt: new Date().toISOString(),
   };
 

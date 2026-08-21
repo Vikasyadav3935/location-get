@@ -17,7 +17,7 @@ export async function OPTIONS() {
   return new Response(null, { status: 204, headers: corsHeaders });
 }
 
-// POST { "location": "some value" }
+// POST { "latitude": 12.97, "longitude": 77.59 }
 export async function POST(request: Request) {
   let body: unknown;
 
@@ -27,13 +27,23 @@ export async function POST(request: Request) {
     return json({ error: "Body must be valid JSON." }, 400);
   }
 
-  const location = (body as { location?: unknown } | null)?.location;
+  const { latitude, longitude } = (body ?? {}) as {
+    latitude?: unknown;
+    longitude?: unknown;
+  };
 
-  if (typeof location !== "string" || location.trim() === "") {
-    return json({ error: '"location" is required and must be a non-empty string.' }, 400);
+  if (typeof latitude !== "number" || !Number.isFinite(latitude) || Math.abs(latitude) > 90) {
+    return json({ error: '"latitude" is required and must be a number between -90 and 90.' }, 400);
   }
 
-  const entry = addLocation(location.trim());
+  if (typeof longitude !== "number" || !Number.isFinite(longitude) || Math.abs(longitude) > 180) {
+    return json(
+      { error: '"longitude" is required and must be a number between -180 and 180.' },
+      400,
+    );
+  }
+
+  const entry = addLocation(latitude, longitude);
 
   return json({ ok: true, entry }, 201);
 }

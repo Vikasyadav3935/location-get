@@ -9,7 +9,8 @@ export default function LocationBoard({
   initialEntries: LocationEntry[];
 }) {
   const [entries, setEntries] = useState(initialEntries);
-  const [input, setInput] = useState("");
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -32,13 +33,27 @@ export default function LocationBoard({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+
+    if (lat.trim() === "" || !Number.isFinite(latitude) || Math.abs(latitude) > 90) {
+      setError("Latitude must be a number between -90 and 90.");
+      return;
+    }
+
+    if (lng.trim() === "" || !Number.isFinite(longitude) || Math.abs(longitude) > 180) {
+      setError("Longitude must be a number between -180 and 180.");
+      return;
+    }
+
     setSending(true);
 
     try {
       const res = await fetch("/api/location", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location: input }),
+        body: JSON.stringify({ latitude, longitude }),
       });
       const data = await res.json();
 
@@ -47,7 +62,8 @@ export default function LocationBoard({
         return;
       }
 
-      setInput("");
+      setLat("");
+      setLng("");
       await load();
     } catch {
       setError("Could not reach the API.");
@@ -68,7 +84,7 @@ export default function LocationBoard({
         <p className="text-sm opacity-60">
           POST{" "}
           <code className="rounded bg-foreground/10 px-1 py-0.5">
-            {'{ "location": "..." }'}
+            {'{ "latitude": 12.97, "longitude": 77.59 }'}
           </code>{" "}
           to <code className="rounded bg-foreground/10 px-1 py-0.5">/api/location</code> and it
           shows up below.
@@ -77,14 +93,26 @@ export default function LocationBoard({
 
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter a location"
+          type="number"
+          inputMode="decimal"
+          step="any"
+          value={lat}
+          onChange={(e) => setLat(e.target.value)}
+          placeholder="Latitude"
+          className="flex-1 rounded-md border border-foreground/20 px-3 py-2 text-sm outline-none focus:border-foreground/50"
+        />
+        <input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          value={lng}
+          onChange={(e) => setLng(e.target.value)}
+          placeholder="Longitude"
           className="flex-1 rounded-md border border-foreground/20 px-3 py-2 text-sm outline-none focus:border-foreground/50"
         />
         <button
           type="submit"
-          disabled={sending || input.trim() === ""}
+          disabled={sending || lat.trim() === "" || lng.trim() === ""}
           className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-40"
         >
           {sending ? "Sending…" : "Send"}
@@ -117,7 +145,9 @@ export default function LocationBoard({
                 key={entry.id}
                 className="flex items-baseline justify-between rounded-md border border-foreground/15 px-3 py-2"
               >
-                <span className="font-medium">{entry.location}</span>
+                <span className="font-medium">
+                  {entry.latitude}, {entry.longitude}
+                </span>
                 <time className="text-xs opacity-40">
                   {new Date(entry.receivedAt).toLocaleTimeString()}
                 </time>
@@ -130,7 +160,7 @@ export default function LocationBoard({
       <pre className="overflow-x-auto rounded-md bg-foreground/10 p-4 text-xs">
         {`curl -X POST http://localhost:3000/api/location \\
   -H "Content-Type: application/json" \\
-  -d '{"location": "Bengaluru"}'`}
+  -d '{"latitude": 12.97, "longitude": 77.59}'`}
       </pre>
     </main>
   );
